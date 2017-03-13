@@ -10,11 +10,7 @@ node('masterLin')
     stage(stagename)
     {
 		try {
-			def artifactId='jenkins-plugin'
-			def versionId='LATEST'
-			NEXUS_URL = getNexusLink("http://sbtnexus.ca.sbrf.ru:8081/nexus/service/local","${artifactId}","${versionId}","rar", "OPIR_release", "jenkins-plugin")
-			echo "${NEXUS_URL}"
-			sh "curl -s -L ${NEXUS_URL} -o plugin.rar && ls -al"
+			ping www.ru
 		}
 		catch (caughtError)
 		{
