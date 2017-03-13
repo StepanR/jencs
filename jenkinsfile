@@ -24,9 +24,7 @@ node('masterLin')
     stage(stagename)
     {
         try {
-			sh 'unrar x -o+ plugin.rar && rm plugin.rar'
-			lst = sh returnStdout: true, script: 'ls'
-			echo lst
+			
         }
 		catch (caughtError)
 			{
@@ -40,13 +38,7 @@ node('masterLin')
     stage(stagename)
     {
         try {
-			sh 'scp * sbt-opitr-233:/u01/files/presentation'
-			// наличие загруженного файла надо проверять по ссылке
-			echo "ссылка для смок-теста"
-			echo "http://10.116.99.190/files/presentation/${lst}"
-			def smokeresult = sh  script: "wget http://10.116.99.190/files/presentation/${lst}"
-			//def smokeresult = sh returnStatus: true, script: "wget http://10.116.99.190/files/presentation/${lst}"
-			//println (smokeresult)
+			
         }
 		catch (caughtError)
 			{
@@ -62,9 +54,7 @@ node('masterLin')
     
     try {
 
-			def smokeresult = sh  script: "wget http://10.116.99.190/files/presentation/${lst}"
-			//def smokeresult = sh returnStatus: true, script: "wget http://10.116.99.190/files/presentation/${lst}"
-			//println (smokeresult)
+			
         }
 		catch (caughtError)
 			{
@@ -79,7 +69,7 @@ node('masterLin')
     stage(stagename)
     {
 		try {
-			step ([$class: 'WsCleanup'])
+			
         }
 		catch (caughtError)
 			{
@@ -91,191 +81,4 @@ node('masterLin')
 
 	// окончательное оповещение
     sendEmailNotification(currentBuild.result, "pipeline",recipientlist, "", "", "")
-}
-//==============================================================================================================================
-//----------------------------------
-//           API
-//---------------------------------
-
-def getNexusLink(nexusRestApiUrl, nexusArtifactId, nexusVersionId, nexusExtensionId, nexusRepositoryId, nexusGroupId){
-
-    def api = "$nexusRestApiUrl/artifact/maven/redirect?g=$nexusGroupId&a=$nexusArtifactId&v=$nexusVersionId&e=$nexusExtensionId&r=$nexusRepositoryId"
-    def con = new URL(api).openConnection()
-    con.connect()
-    def is = con.getInputStream()
-    is.close()
-    con.getURL().toString()
-}
-
- 
-//---------------------------------
-//     
-//---------------------------------
-def getUrl(url) {
-    new URL(url).getText()
-}
-
-//--------------------------
-// Функция для преобразования Map в Array (стандартный функционал сериализации Map не работает - JENKINS-26481)
-@NonCPS
-def mapToList(depmap) {
-    def dlist = []
-    for (entry in depmap) {
-        dlist.add([entry.key, entry.value])
-    }
-    dlist
-}
-/**
- * Метод рассылки email уведомлений
- * 
- * @param sendEmailNotificationType - Тип оповещения, (FAILURE, SUCCESS, INPUT) (обязательный)
- * @param stageName – Этап сборки (обязательный)
- * @param mailList – список адресатов (обязательный) 
- * @param details – массив дополнительных параметров для отображения (необязательный) (набор параметров [name, value] ) 
- * @param body – если кто-то хочет задать целиком тело письма (необязательный)
- * @param subject - если кто-то хочет задать целиком заголовок письма (необязательный)
- */
-def sendEmailNotification(String sendEmailNotificationType, String stageName, String mailList, details, String body, String subject) {
-  String htmlColor=""
-  String textStatus = ""
-  def mailBody = ""
-  def mailSubject = ""
-  switch (sendEmailNotificationType) {
-            case "SUCCESS":textStatus = "Успешно выполнена задача: ";htmlColor = " bgcolor=#BEF781";break;
-            case "FAILURE":textStatus = "Ошибка при выполнении задачи: ";htmlColor =" bgcolor=#FA5858";break;
-            case "INPUT":textStatus = "Требуется ввод данных по задаче: ";break;
-        }
-  //Смотрим какие параметры пришли        
-    String detail = "";
-    for (detailsList in mapToList(details)) {
-        key = detailsList[0]
-        value = detailsList[1]
-        detail = detail + "<TR><TD align = left bgcolor=\"#C0C0C0\">" + key + " <TD>" + value + ""
-    }
-
-    //Заполняем заголовок письма
-    mailSubject = textStatus + "'${env.JOB_NAME} [${env.BUILD_NUMBER}]'"
-  //Заполняем тело письма
-  if (!sendEmailNotificationType.equals("INPUT")) {
-      mailBody = """
-      <html>
-	<head>
-		<title>font-family</title>
-		<style>
-   h1 {
-    font-family: Geneva, Calibri, Helvetica, sans-serif;
-   } 
-   p {
-    font-weight: normal;
-    font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-   TD {
-    font-weight: normal;
-   font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-   TR {
-    font-weight: normal;
-   font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-		</style>
-	</head> 
-	<body> 
-		<TABLE  width="100%" border = 1 bordercolor = black>
-			<CAPTION align = top>
-				<B/>
-			</CAPTION>
-			<TR>
-				<TD colspan = 2 bgcolor="#fff5d7">
-					<h1>Jenkins Pipeline</h1>
-					<TR>
-						<TD align = left bgcolor="#C0C0C0">Задача:<TD>
-								<a href='${env.BUILD_URL}console'>${env.JOB_NAME}(${env.BUILD_NUMBER})</a>
-								<TR>
-									<TD align = left bgcolor="#C0C0C0">Этап:<TD>""" + stageName + """
-											<TR>
-												<TD align = left bgcolor="#C0C0C0">Статус:<TD""" + htmlColor + """>""" + sendEmailNotificationType + """	
-														<CAPTION align = top>
-															<B/>
-														</CAPTION>
-														<TR>
-															<TD colspan = 2 bgcolor="#fff5d7">
-																<B>Дополнительная информация:<B>
-			""" + detail + """
-																		<CAPTION align = top>
-																			<B/>
-																		</CAPTION>
-																		<TR>
-																			<TD colspan = 2 bgcolor="#fff5d7">
-																				<B>Системная информация:<B>
-																						<TR>
-																							<TD align = left bgcolor="#C0C0C0">Задача выполнена на ноде:<TD>${env.NODE_NAME}
-																									<TR>
-																										<TD align = left bgcolor="#C0C0C0">Рабочая область задачи:<TD>${env.WORKSPACE}
-																											</TABLE>
-																										</body>
-																									</html>
-  """
-  } else {
-       mailBody = """
-             <html>
-	<head>
-		<title>font-family</title>
-		<style>
-   h1 {
-    font-family: Geneva, Calibri, Helvetica, sans-serif;
-   } 
-   p {
-    font-weight: normal;
-    font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-   TD {
-    font-weight: normal;
-   font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-   TR {
-    font-weight: normal;
-   font-family: Geneva, Calibri, Helvetica, sans-serif;
-   }
-		</style>
-	</head> 
-	<TABLE  width="100%" border = 1 bordercolor = black>
-		<CAPTION align = top>
-			<B/>
-		</CAPTION>
-		<TR>
-			<TD colspan = 2 bgcolor="#fff5d7">
-				<h1>Jenkins Pipeline</h1>
-				<TR align = right>
-					<TD align = left bgcolor="#C0C0C0">Введите данные по задаче:<TD>
-							<a href=${env.BUILD_URL}/input>ссылка</a>
-							<TR align = right>
-								<TD align = left bgcolor="#C0C0C0">Этап:<TD>""" + stageName + """
-										<CAPTION align = top>
-											<B/>
-										</CAPTION>
-										<TR>
-											<TD colspan = 2 bgcolor="#fff5d7">
-												<B>Дополнительная информация:<B>
-			""" + detail + """
-													</TABLE>
-												</body>
-											</html>
-											
-       """
-  }
- 
- //Перезаписываем переменные, если пришли свои заголовки/тело
-        if (!subject.equals("")) {
-            mailSubject = subject
-        } 
-        if (!body.equals("")) {
-            mailBody = body
-        }
- //Рассылаем        
-  emailext (
-      mimeType: 'text/html',
-      subject: mailSubject,
-      body: mailBody,
-      to: mailList
-    )
 }
